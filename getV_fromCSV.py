@@ -397,7 +397,6 @@ def main():
     pickle_out.close()
     VT, tempDT = d.getSeq(data2, Vdesc)  ##use printout from LINE 332 for LCS_clustering.R
 
-    
 
 if __name__ == '__main__':
     main()
