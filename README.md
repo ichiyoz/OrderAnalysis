@@ -7,3 +7,5 @@ step 2: process generated files in step 1 by running ReadfromCSV_HF.py into pyth
 step 3: process json file from step 2 using getV_fromCSV_HF.py
 
 step 4: generate analytical file by running printDiscofile.ipynb
+
+step 5: run stata HF.do
