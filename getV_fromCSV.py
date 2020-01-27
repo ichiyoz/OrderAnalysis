@@ -301,23 +301,91 @@ class Structure:
 
         return data, Vdesc
 
+    def getSeq(self, data, Vdesc):
+        VT = dict()
+        tempDT = dict()
+
+        for pid in data:
+            t = Structure()
+            VT[pid] = list()
+            # tempDT[pid] = list()
+            # VT[pid].append('start')
+            # tempDT[pid].append('start')
+            for date in sorted(data[pid]['appt']):
+                if 'withinappt' not in data[pid]['appt'][date] or len(data[pid]['appt'][date]['withinappt']) == 0:
+                    # tempDT[pid].append(data[pid]['appt'][date]['actualdate'])
+                    VT[pid].append(Vdesc[str(data[pid]['appt'][date]['type']) + str(
+                        data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(
+                        data[pid]['appt'][date]['drugclass'])])
+                elif len(data[pid]['appt'][date]['withinappt']) > 0:
+                    for time in sorted(iter(data[pid]['appt'][date]['withinappt'])):
+                        # tempDT[pid].append(data[pid]['appt'][date]['withinappt'][time]['actualtime'])
+                        VT[pid].append(Vdesc[str(data[pid]['appt'][date]['type']) + str(
+                            data[pid]['appt'][date]['withinappt'][time]['diag']) + str(
+                            data[pid]['appt'][date]['withinappt'][time]['proc']) + str(
+                            data[pid]['appt'][date]['withinappt'][time]['drugclass'])])
+
+        print('getSeq1', datetime.now())
+
+        for pid in VT:
+            if len(VT[pid])>1:
+                print (pid, data[pid]['location'], VT[pid])
+        print('getSeq2', datetime.now())
+        # VT=self.findRepeats(VT)
+        print (len(VT))
+        pickle_out = open(path + 'HF_VT.pickle', 'wb')
+        pickle.dump(VT, pickle_out)
+        pickle_out.close()
+        return VT, tempDT
+
+    def findRepeats(self, VT):
+        seen = {}
+
+        uniq = {}
+        # IF GET ACTUAL REPEATS
+        for pid in VT:
+            seen[pid] = set()
+            uniq[pid] = {}
+            for x in range(len(VT[pid])):
+                if VT[pid][x] not in seen[pid]:
+                    uniq[pid][VT[pid][x]] = 0
+                    uniq[pid][VT[pid][x]] = 1 + uniq[pid][VT[pid][x]]
+                    seen[pid].add(VT[pid][x])
+                else:
+                    uniq[pid][VT[pid][x]] = uniq[pid][VT[pid][x]] + 1
+                    VT[pid][x] = str(VT[pid][x]) + '_' + str(uniq[pid][VT[pid][x]])
+
+        # #IF ONLY LABEL 
+        # for pid in VT:
+        #     seen[pid]=set()
+        #     uniq[pid]={}
+        #     for x in range(len(VT[pid])):
+        #         if VT[pid][x] not in seen[pid]:
+        #             uniq[pid][VT[pid][x]]=0
+        #             uniq[pid][VT[pid][x]]=1+uniq[pid][VT[pid][x]]
+        #             seen[pid].add(VT[pid][x])
+        #         else:
+        #             uniq[pid][VT[pid][x]]=uniq[pid][VT[pid][x]]
+        #             VT[pid][x]=str(VT[pid][x])+'_'+str(uniq[pid][VT[pid][x]])
+        return VT
+
+
 def main():
     d = Structure()
 
-    fh = open(path + "EDDC_HF_ouput.json", 'r')
-    data = json.load(fh)
-    print ('data loaded')
-    print ('num patient',len(data))
+    # fh = open(path + "EDDC_HF_ouput.json", 'r')
+    # data = json.load(fh)
     
-    data2 = d.filterData(data)
-    print ('data filtered')
+    # print ('data loaded')
+    # print ('num patient',len(data))
     
-    # pickle_out = open(path + 'data_18_89_EDDC_2012_2018_filtered.pickle', 'rb')
-    # data2 = pickle.load(pickle_out)
-    # pickle_out.close()
-    # fh = open(path + "HF_data_filtered_OS.json", 'r')
-    # data2 = json.load(fh)
-
+    # data2 = d.filterData(data)
+    # print ('data filtered')
+    
+    pickle_out = open(path + 'data_18_89_EDDC_2012_2018_filtered.pickle', 'rb')
+    data2 = pickle.load(pickle_out)
+    pickle_out.close()
+    
     #make into sequences
     nodedesc = d.getNode(data2)
     pickle_out = open(path + 'HF_node.pickle', 'rb')
@@ -327,7 +395,8 @@ def main():
     pickle_out = open(path + 'HF_V.pickle', 'rb')
     Vdesc = pickle.load(pickle_out)
     pickle_out.close()
-    
+    VT, tempDT = d.getSeq(data2, Vdesc)  ##use printout from LINE 332 for LCS_clustering.R
+
     
 
 if __name__ == '__main__':
