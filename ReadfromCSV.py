@@ -13,7 +13,7 @@ JSON_FILE = os.path.expanduser(path+"EDDC_HF_2012_2018_ouput.json")
 
 
 class DataProcess:
-
+    #read from CSV files generated from getSourceData.ipynb
     def readFromCSV(self): 
         resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
@@ -28,14 +28,12 @@ class DataProcess:
 
     def saveDataToJson(self):
 
-        # resultlist_drug, resultlist_cd, resultlist_ap, resultlist_ce, resultlist_demo, resultlist_patient,resultlist_lab = self.readFromDB()
         resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap = self.readFromCSV()
         
+        #create python dictionary. key is visitID (clientvisitguid)
         CE = {}
-
         for res in resultlist_ap.itertuples():
-            # p = Diagnosis(res)
-
+            
             CE[res.clientvisitguid] = dict()
             CE[res.clientvisitguid]['appt'] = dict()
             CE[res.clientvisitguid]['sex'] = 'NA'
@@ -48,8 +46,8 @@ class DataProcess:
             CE[res.clientvisitguid]['dischargetime']=res.dischargedtm
             CE[res.clientvisitguid]['admittime']=res.admitdtm
 
+        #add demographic
         for res in resultlist_demo.itertuples():
-            
             for pid in CE:
                 if CE[pid]['clientID']==res.clientguid:
                         try:
@@ -61,31 +59,29 @@ class DataProcess:
                         except:
                             pass
 
-        # for res in resultlist_ap.itertuples():
-        #     # ap = Appointment(res)
-            
-        #     CE[res.clientvisitguid]['appt']['type'] = 'ED/Inpatient Visit'
-        #     CE[res.clientvisitguid]['appt']['dischargedisposition'] = res.dischargedisposition
-        #     CE[res.clientvisitguid]['appt']['admittdtm'] = res.admitdtm
-        #     CE[res.clientvisitguid]['appt']['dischargedtm'] = res.dischargedtm
-
+        #add lab orders 
         for res in resultlist_ce.itertuples():
           if res.typecode=='Diagnostic':
             if res.clientvisitguid in CE:
                 
+                #if timestamp already created
                 if res.createdwhen in CE[res.clientvisitguid]['appt']:
-                    
+                    #if order sets were used just take order set names
                     if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-                        
+                    
+                    #if non-order set order just label as 'Lab_order'
                     elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
                         # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
                     
+                    #add ID of the user who placed the order
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
+                
+                #if this is a new timestamp
                 else:
                     CE[res.clientvisitguid]['appt'][res.createdwhen]={}
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['type']='I'
@@ -95,20 +91,23 @@ class DataProcess:
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['lab']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['user']=[]
                     
+                    #if order sets were used just take order set names
                     if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-                        
+                    
+                    #if non-order set order just label as 'Lab_order'
                     elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
                         # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
 
+                    #add ID of the user who placed the order
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
-    
+
+        #add diagnoses
         for res in resultlist_cd.itertuples():
-            # cd = Diagnosis(res)
             if res.clientvisitguid in CE:
                 if res.createdwhen in CE[res.clientvisitguid]['appt']:
                     diagcombo={}
@@ -136,7 +135,7 @@ class DataProcess:
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
 
-
+        #adding drug orders. same logic as adding lab orders (above)
         for res in resultlist_ce.itertuples():
           if res.typecode=='Medication':
             if res.clientvisitguid in CE:
@@ -162,108 +161,6 @@ class DataProcess:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['user'])
 
-        # for res in resultlist_lab:
-        #     cd = Lab(res)
-        #     if cd.visitid in CE[cd.acct]['visitIDs']:
-        #         for date in CE[cd.acct]['appt']:
-        #             if cd.visitid==CE[cd.acct]['appt'][date]['ID']:
-        #                 if CE[cd.acct]['appt'][date]['type']=='Outpatient Visit':
-        #                     labcombo={}
-        #                     try:
-        #                         if float(cd.result)>float(cd.low) and float(cd.result)<float(cd.high):
-        #                             result='normal'
-        #                         else:
-        #                             result='abnormal'
-        #                     except:
-        #                         result='NA'
-        #                     labcombo[cd.test]=result
-        #                     if labcombo not in CE[cd.acct]['appt'][date]['lab']:
-        #                         CE[cd.acct]['appt'][date]['lab'].append(labcombo)
-
-        #                 else:
-        #                     if cd.datetime in CE[cd.acct]['appt'][date]['withinappt']:
-        #                         labcombo={}
-        #                         try:
-        #                             if float(cd.result)>float(cd.low) and float(cd.result)<float(cd.high):
-        #                                 result='normal'
-        #                             else:
-        #                                 result='abnormal'
-        #                         except:
-        #                             result='NA'
-        #                         labcombo[cd.test]=result
-        #                         if labcombo not in CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['lab']:
-        #                                 CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['lab'].append(labcombo)
-        #                     else:
-        #                         CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]={}
-        #                         CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['proc']=[]
-        #                         CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['drug']=[]
-        #                         CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['diag']=[]
-        #                         CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['lab']=[]
-        #                         labcombo={}
-        #                         try:
-        #                             if float(cd.result)>float(cd.low) and float(cd.result)<float(cd.high):
-        #                                 result='normal'
-        #                             else:
-        #                                 result='abnormal'
-        #                         except:
-        #                             result='NA'
-        #                         labcombo[cd.test]=result
-        #                         if labcombo not in CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['lab']:
-        #                             CE[cd.acct]['appt'][date]['withinappt'][cd.datetime]['lab'].append(labcombo)
-
-
-        # for res in resultlist_drug:
-        #     cdrg = Drug(res)
-        #     if cdrg.visitid in CE[cdrg.acct]['visitIDs']:
-        #         for date in CE[cdrg.acct]['appt']:
-        #             if cdrg.visitid==CE[cdrg.acct]['appt'][date]['ID']:
-        #                 if CE[cdrg.acct]['appt'][date]['type']!='Outpatient Visit':
-        #                     if cdrg.startdatetime in CE[cdrg.acct]['appt'][date]['withinappt']:
-        #                         d = dict()
-        #                         d['name'] = cdrg.drug
-        #                         d['class'] = 'class'
-        #                         d['prestype']=cdrg.prestype
-        #                         d['status']=cdrg.stop_reason
-        #                         d['startdate']=cdrg.startdate
-        #                         d['enddate']=cdrg.enddate
-        #                         d['sig']=cdrg.sig
-        #                         d['provider']=cdrg.providerid
-        #                         if d not in CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['drug']:
-        #                             CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['drug'].append(d)
-        #                     else:
-        #                         CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]={}
-        #                         CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['proc']=[]
-        #                         CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['diag']=[]
-        #                         CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['drug']=[]
-        #                         CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['lab']=[]
-        #                         d = dict()
-        #                         d['name'] = cdrg.drug
-        #                         d['class'] = 'class'
-        #                         d['prestype']=cdrg.prestype
-        #                         d['status']=cdrg.stop_reason
-        #                         d['startdate']=cdrg.startdate
-        #                         d['enddate']=cdrg.enddate
-        #                         d['sig']=cdrg.sig
-        #                         d['provider']=cdrg.providerid
-        #                         if d not in CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['drug']:
-        #                             CE[cdrg.acct]['appt'][date]['withinappt'][cdrg.startdatetime]['drug'].append(d)
-
-        #                 else:
-        #                     for date in CE[cdrg.acct]['appt']:
-        #                         if cdrg.visitid==CE[cdrg.acct]['appt'][date]['ID']:
-        #                             #match drug start by visit ID
-        #                             d = dict()
-        #                             d['name'] = cdrg.drug
-        #                             d['class'] = 'class'
-        #                             d['prestype']=cdrg.prestype
-        #                             d['status']=cdrg.stop_reason
-        #                             d['startdate']=date
-        #                             d['enddate']=cdrg.enddate
-        #                             d['sig']=cdrg.sig
-        #                             d['provider']=cdrg.providerid
-        #                             if d not in CE[cdrg.acct]['appt'][date]['drug']:
-        #                                 CE[cdrg.acct]['appt'][date]['drug'].append(d)
-                            
         print('CE',len(CE))
 
         with open(JSON_FILE, 'w') as outfile:
