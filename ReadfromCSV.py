@@ -41,10 +41,11 @@ class DataProcess:
             CE[res.clientvisitguid]['marry'] = 'NA'
             CE[res.clientvisitguid]['language'] = 'NA'
             CE[res.clientvisitguid]['age'] = -1
-            CE[res.clientvisitguid]['clientID']=res.clientguid
-            CE[res.clientvisitguid]['dischargedisposition']=res.dischargedisposition
-            CE[res.clientvisitguid]['dischargetime']=res.dischargedtm
-            CE[res.clientvisitguid]['admittime']=res.admitdtm
+            CE[res.clientvisitguid]['clientID']=res.ClientGUID
+            CE[res.clientvisitguid]['dischargedisposition']=res.DischargeDCDesc
+            CE[res.clientvisitguid]['dischargetime']=res.DischargeDtm
+            CE[res.clientvisitguid]['admittime']=res.AdmitDtm
+            CE[res.clientvisitguid]['service']=res.HospitalService
 
         #add demographic
         for res in resultlist_demo.itertuples():
