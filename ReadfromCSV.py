@@ -36,30 +36,30 @@ class DataProcess:
             
             CE[res.clientvisitguid] = dict()
             CE[res.clientvisitguid]['appt'] = dict()
-            CE[res.clientvisitguid]['sex'] = 'NA'
-            CE[res.clientvisitguid]['race'] = 'NA'
-            CE[res.clientvisitguid]['marry'] = 'NA'
-            CE[res.clientvisitguid]['language'] = 'NA'
-            CE[res.clientvisitguid]['age'] = -1
             CE[res.clientvisitguid]['clientID']=res.ClientGUID
             CE[res.clientvisitguid]['dischargedisposition']=res.DischargeDCDesc
             CE[res.clientvisitguid]['dischargetime']=res.DischargeDtm
             CE[res.clientvisitguid]['admittime']=res.AdmitDtm
             CE[res.clientvisitguid]['service']=res.HospitalService
+            CE[res.clientvisitguid]['sex'] = ''
+            CE[res.clientvisitguid]['age'] = -1
+            CE[res.clientvisitguid]['race'] = ''
+            CE[res.clientvisitguid]['marry'] = ''
+            CE[res.clientvisitguid]['language'] = ''
+            CE[res.clientvisitguid]['ethnicity'] = ''
 
         #add demographic
-        for res in resultlist_demo.itertuples():
-            for pid in CE:
-                if CE[pid]['clientID']==res.clientguid:
-                        try:
-                            CE[pid]['sex'] = res.gender
-                            CE[pid]['age'] = int(res.YOB)
-                            CE[pid]['race'] = res.race
-                            CE[pid]['marry'] = res.mariatalstatus
-                            CE[pid]['language'] = res.language
-                        except:
-                            pass
-
+        for res in resultlist_demo.itertuples():  
+            try:
+                CE[res.clientvisitguid]['sex'] = res.gender
+                CE[res.clientvisitguid]['age'] = res.YOB
+                CE[res.clientvisitguid]['race'] = res.race
+                CE[res.clientvisitguid]['marry'] = res.mariatalstatus
+                CE[res.clientvisitguid]['language'] = res.language
+                CE[res.clientvisitguid]['ethnicity'] = res.ethnicity1
+            except:
+                print('only in demo')
+                        
         #add lab orders 
         for res in resultlist_ce.itertuples():
           if res.typecode=='Diagnostic':
