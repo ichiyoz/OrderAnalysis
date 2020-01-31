@@ -329,7 +329,7 @@ class Structure:
 
         for pid in VT:
             if len(VT[pid])>1:
-                print (pid, data[pid]['location'], VT[pid])
+                print (pid,  VT[pid])
         print('getSeq2', datetime.now())
         # VT=self.findRepeats(VT)
         print (len(VT))
@@ -382,10 +382,13 @@ def main():
     # data2 = d.filterData(data)
     # print ('data filtered')
     
-    pickle_out = open(path + 'data_18_89_EDDC_2012_2018_filtered.pickle', 'rb')
-    data2 = pickle.load(pickle_out)
-    pickle_out.close()
+    # pickle_out = open(path + 'data_18_89_EDDC_2012_2018_filtered.pickle', 'rb')
+    # data2 = pickle.load(pickle_out)
+    # pickle_out.close()
     
+    fh = open(path + "EDDC_HF_data_filtered_OS.json", 'r')
+    data2 = json.load(fh)
+
     #make into sequences
     nodedesc = d.getNode(data2)
     pickle_out = open(path + 'HF_node.pickle', 'rb')
