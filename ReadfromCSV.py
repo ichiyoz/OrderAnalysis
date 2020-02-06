@@ -1,11 +1,11 @@
 import os
-# import MySQLdb as mdb
 import simplejson
 import json
 import pandas as pd
 from scipy import stats
 import numpy as np
 import xlrd
+from datetime import datetime, timedelta
 
 path = '/Users/yiyezhang/Documents/Data/NYPData/HF/'
         
@@ -17,18 +17,20 @@ class DataProcess:
     def readFromCSV(self): 
         resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_task.csv',sep=',',error_bad_lines=False,header=0)
 
         resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
         resultlist_demo=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/demographics_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
+        resultlist_location=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/location_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        
         # return resultlist_drug, resultlist_cd, resultlist_ap, resultlist_ce, resultlist_demo, resultlist_patient,resultlist_lab 
-        return resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap
+        return resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap,resultlist_location
 
     def saveDataToJson(self):
 
-        resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap = self.readFromCSV()
+        resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap,resultlist_location = self.readFromCSV()
         
         #create python dictionary. key is visitID (clientvisitguid)
         CE = {}
@@ -62,22 +64,24 @@ class DataProcess:
                         
         #add lab orders 
         for res in resultlist_ce.itertuples():
-          if res.typecode=='Diagnostic':
             if res.clientvisitguid in CE:
-                
                 #if timestamp already created
                 if res.createdwhen in CE[res.clientvisitguid]['appt']:
                     #if order sets were used just take order set names
-                    if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                    if res.typecode=='Diagnostic':
+                        if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
+                        
+                        #if non-order set order just label as 'Lab_order'
+                        elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
+                            # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
+                    if res.typecode=='Other':
+                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-                    
-                    #if non-order set order just label as 'Lab_order'
-                    elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                        # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-                    
+                        
                     #add ID of the user who placed the order
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
@@ -91,18 +95,21 @@ class DataProcess:
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['diag']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['lab']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['user']=[]
-                    
-                    #if order sets were used just take order set names
-                    if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                    CE[res.clientvisitguid]['appt'][res.createdwhen]['location']=[]
+                    if res.typecode=='Diagnostic':
+                        #if order sets were used just take order set names
+                        if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
+                        
+                        #if non-order set order just label as 'Lab_order'
+                        elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
+                            # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
+                    if res.typecode=='Other': 
+                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-                    
-                    #if non-order set order just label as 'Lab_order'
-                    elif str(res.ordersetname)=='nan' and res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] and 'Lab_order' not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                        # CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.name)
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('Lab_order')
-                        CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
-
                     #add ID of the user who placed the order
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
@@ -127,6 +134,7 @@ class DataProcess:
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['diag']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['lab']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['user']=[]
+                    CE[res.clientvisitguid]['appt'][res.createdwhen]['location']=[]
                     diagcombo={}
                     diagcombo[res.typecode]=res.shortname
                     # if diagcombo not in CE[res.clientvisitguid]['appt'][res.createdwhen]['diag']:
@@ -155,12 +163,37 @@ class DataProcess:
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['diag']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['lab']=[]
                     CE[res.clientvisitguid]['appt'][res.createdwhen]['user']=[]
+                    CE[res.clientvisitguid]['appt'][res.createdwhen]['location']=[]
                     if res.name not in CE[res.clientvisitguid]['appt'][res.createdwhen]['drug']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['drug'].append(res.name)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['drug'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['drug'])
                     if res.userguid not in CE[res.clientvisitguid]['appt'][res.createdwhen]['user']:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['user'])
+        print('add locations')
+        #adding locations
+        for pid in CE:
+            for date in sorted(CE[pid]['appt']):
+              
+                for t in range(len(resultlist_location)-1):
+                  if pid==resultlist_location.iloc[t]['clientvisitguid']:
+                    if resultlist_location.iloc[t]['createdwhen'] ==date:
+                        CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
+                    if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                        CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
+                    if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                        CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
+        # for t in range(len(resultlist_location)):
+        #     if resultlist_location.iloc[t]['clientvisitguid'] in CE:
+        #         if resultlist_location.iloc[t]['CreatedWhen'] in CE[resultlist_location.iloc[t]['clientvisitguid']]['appt']:
+        #             CE[resultlist_location.iloc[t]['clientvisitguid']]['appt'][res.CreatedWhen]['location'].append(resultlist_location.iloc[t]['name'])
+        #         else:
+        #             for pid in CE:
+        #                 for date in sorted(CE[pid]['appt']):
+        #                     if datetime.strptime(resultlist_location.iloc[t]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+        #                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
+        #                     elif datetime.strptime(resultlist_location.iloc[t]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+        #                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
 
         print('CE',len(CE))
 
