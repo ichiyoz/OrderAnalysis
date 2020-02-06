@@ -179,10 +179,16 @@ class DataProcess:
                   if pid==resultlist_location.iloc[t]['clientvisitguid']:
                     if resultlist_location.iloc[t]['createdwhen'] ==date:
                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
-                    if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                    if resultlist_location.iloc[t]['createdwhen']<date and resultlist_location.iloc[t+1]['createdwhen']>date:
                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
-                    if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                    if resultlist_location.iloc[t]['createdwhen']>date and resultlist_location.iloc[t-1]['createdwhen']<date:
                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
+
+                    # if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                    #     CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
+                    # if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
+                    #     CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
+
         # for t in range(len(resultlist_location)):
         #     if resultlist_location.iloc[t]['clientvisitguid'] in CE:
         #         if resultlist_location.iloc[t]['CreatedWhen'] in CE[resultlist_location.iloc[t]['clientvisitguid']]['appt']:
