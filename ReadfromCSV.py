@@ -7,7 +7,7 @@ import numpy as np
 import xlrd
 from datetime import datetime, timedelta
 
-path = '/Users/yiyezhang/Documents/Data/NYPData/HF/'
+path = '/Users/yiz2014/Documents/Data/NYPData/HF/'
         
 JSON_FILE = os.path.expanduser(path+"EDDC_HF_2012_2018_ouput.json")
 
@@ -15,15 +15,15 @@ JSON_FILE = os.path.expanduser(path+"EDDC_HF_2012_2018_ouput.json")
 class DataProcess:
     #read from CSV files generated from getSourceData.ipynb
     def readFromCSV(self): 
-        resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_cd=pd.read_csv(path+'diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_task.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ce=pd.read_csv(path+'order_EDDC_2012_2018_task.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ap=pd.read_csv(path+'visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
-        resultlist_demo=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/demographics_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_demo=pd.read_csv(path+'demographics_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
-        resultlist_location=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/location_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_location=pd.read_csv(path+'location_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
         # return resultlist_drug, resultlist_cd, resultlist_ap, resultlist_ce, resultlist_demo, resultlist_patient,resultlist_lab 
         return resultlist_ce,resultlist_cd,resultlist_demo,resultlist_ap,resultlist_location
