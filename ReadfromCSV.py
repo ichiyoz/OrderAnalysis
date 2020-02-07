@@ -198,7 +198,7 @@ class DataProcess:
                         print('y')
                         #print(pid,date,CE[pid]['appt'][date]['location'])
                     
-                print(pid,date,CE[pid]['appt'][date]['location'],CE[pid]['appt'][date])
+                # print(pid,date,CE[pid]['appt'][date]['location'],CE[pid]['appt'][date])
 
         print('CE',len(CE))
 
