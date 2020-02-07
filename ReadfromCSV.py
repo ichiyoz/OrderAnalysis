@@ -171,12 +171,11 @@ class DataProcess:
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'].append(res.userguid)
                         CE[res.clientvisitguid]['appt'][res.createdwhen]['user'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['user'])
         print('add locations')
-
         CE_location={}
-        for res in resultlist_location:
+        for res in resultlist_location.itertuples():
             CE_location[res.clientvisitguid]=[]
             
-        for res in resultlist_location:
+        for res in resultlist_location.itertuples():
             for pid in CE_location:
                 if res.clientvisitguid in CE_location:
                     if [res.createdwhen,res.name] not in CE_location[res.clientvisitguid]:
@@ -186,30 +185,20 @@ class DataProcess:
         for pid in CE:
             for date in sorted(CE[pid]['appt']): 
                 for t in range(len(CE_location[pid])-1):
+                    if CE_location[pid][t][0]<date and CE_location[pid][t+1][0]>date:
+                        CE[pid]['appt'][date]['location'].append(CE_location[pid][t][1])
+                        print('x')
+                        #print(pid,date,CE[pid]['appt'][date]['location'])
+                for t in range(len(CE_location[pid])):
+                    if date ==CE_location[pid][t][0]:
+                        CE[pid]['appt'][date]['location'].append(CE_location[pid][t][1])
+                        #print(pid,date,CE[pid]['appt'][date]['location'])
+                    if CE_location[pid][t][0]>date and CE_location[pid][t-1][0]<date:
+                        CE[pid]['appt'][date]['location'].append(CE_location[pid][t-1][1])
+                        print('y')
+                        #print(pid,date,CE[pid]['appt'][date]['location'])
                     
-                        if date ==CE_location[pid][t][0]:
-                            CE[pid]['appt'][date][t]['location'].append(CE_location[pid][t][1])
-                        if CE_location[pid][t][0]<date and CE_location[pid][t+1][0]>date:
-                            CE[pid]['appt'][date]['location'].append(CE_location[pid][t][1])
-                        if CE_location[pid][t][0]>date and CE_location[pid][t-1][0]<date:
-                            CE[pid]['appt'][date]['location'].append(CE_location[pid][t-1][1])
-
-                    # if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
-                    #     CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
-                    # if datetime.strptime(resultlist_location.iloc[t]['createdwhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['createdwhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
-                    #     CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
-
-        # for t in range(len(resultlist_location)):
-        #     if resultlist_location.iloc[t]['clientvisitguid'] in CE:
-        #         if resultlist_location.iloc[t]['CreatedWhen'] in CE[resultlist_location.iloc[t]['clientvisitguid']]['appt']:
-        #             CE[resultlist_location.iloc[t]['clientvisitguid']]['appt'][res.CreatedWhen]['location'].append(resultlist_location.iloc[t]['name'])
-        #         else:
-        #             for pid in CE:
-        #                 for date in sorted(CE[pid]['appt']):
-        #                     if datetime.strptime(resultlist_location.iloc[t]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t+1]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
-        #                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t]['name'])
-        #                     elif datetime.strptime(resultlist_location.iloc[t]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')>datetime.strptime(date,'%Y-%m-%d %H:%M:%S') and datetime.strptime(resultlist_location.iloc[t-1]['CreatedWhen'],'%Y-%m-%d %H:%M:%S')<datetime.strptime(date,'%Y-%m-%d %H:%M:%S'):
-        #                         CE[pid]['appt'][date]['location'].append(resultlist_location.iloc[t-1]['name'])
+                print(pid,date,CE[pid]['appt'][date]['location'],CE[pid]['appt'][date])
 
         print('CE',len(CE))
 
