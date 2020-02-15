@@ -313,10 +313,11 @@ class Structure:
             # tempDT[pid].append('start')
             for date in sorted(data[pid]['appt']):
                 if 'withinappt' not in data[pid]['appt'][date] or len(data[pid]['appt'][date]['withinappt']) == 0:
-                    # tempDT[pid].append(data[pid]['appt'][date]['actualdate'])
-                    VT[pid].append(Vdesc[str(data[pid]['appt'][date]['type']) + str(
-                        data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(
-                        data[pid]['appt'][date]['drugclass'])])
+                    if Vdesc[str(data[pid]['appt'][date]['type']) + str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass'])] not in \
+                        VT[pid] and (str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass']) != 'D_NRO_NRM_NR'):
+                        VT[pid].append(Vdesc[str(data[pid]['appt'][date]['type']) + str(
+                            data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(
+                            data[pid]['appt'][date]['drugclass'])])
                 elif len(data[pid]['appt'][date]['withinappt']) > 0:
                     for time in sorted(iter(data[pid]['appt'][date]['withinappt'])):
                         # tempDT[pid].append(data[pid]['appt'][date]['withinappt'][time]['actualtime'])
