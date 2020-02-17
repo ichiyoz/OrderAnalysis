@@ -185,7 +185,6 @@ class Structure:
                                     data[pid]['appt'][date]['withinappt'][time]['drugclass'] not in druglist:
                                 druglist.append(data[pid]['appt'][date]['withinappt'][time]['drugclass'])
 
-        print('getNode1', datetime.now())
         nodedesc = dict()
         for t in range(0, len(orderlist)):
             if orderlist[t] != '':
@@ -202,18 +201,13 @@ class Structure:
                 nodedesc[str(diaglist[s])] = 'D' + str(s)
                 # nodedesc['D' + str(s)] = diaglist[s]
         nodedesc['D_NR'] = 'D_NR'
-        print('getNode2', datetime.now())
+        with open("data/nodedesc.json",'w') as outfile:
+            json.dump(nodedesc, outfile)
 
-        print ('node created')
-        pickle_out = open(path + 'HF_node.pickle', 'wb')
-        pickle.dump(nodedesc, pickle_out)
-        pickle_out.close()
-        # with open("data/nodedesc.json",'w') as outfile:
-        #     json.dump(nodedesc, outfile)
         return nodedesc
 
     def getV(self, nodedesc, data):
-        for pid in data:
+         for pid in data:
             if len(data[pid]['appt']) != 0:
 
                 for date in data[pid]['appt']:
@@ -250,7 +244,7 @@ class Structure:
                                 data[pid]['appt'][date]['withinappt'][time]['drugclass'] = nodedesc[
                                     str(data[pid]['appt'][date]['withinappt'][time]['drugclass'])]
 
-        print('getV1', datetime.now())
+        
         visitlist = dict()
         w = 0
         w2 = 0
@@ -272,34 +266,22 @@ class Structure:
                             data[pid]['appt'][date]['withinappt'][time]['drugclass'])
                         w2 += 1
 
-        print('getV2', datetime.now())
-
         d_visitlist = list()
         for w in range(0, len(visitlist)):
             if visitlist[w] not in d_visitlist:
                 d_visitlist.append(visitlist[w])
 
-        print('getV3', datetime.now())
-
+        
         Vdesc = dict()
         for t in range(0, len(d_visitlist)):
             if d_visitlist[t] != '':
                 Vdesc[str(d_visitlist[t])] = 'V' + str(t)
         Vdesc['D_NRO_NRM_NR'] = 'D_NRO_NRM_NR'
-        print('getV4', datetime.now())
+        
+        with open("data/Vdesc.json", 'w') as outfile:
+            json.dump(Vdesc, outfile)
 
-        pickle_out = open(path + 'HF_V.pickle', 'wb')
-        pickle.dump(Vdesc, pickle_out)
-        pickle_out.close()
-
-        # with open("data/Vdesc.json", 'w') as outfile:
-        #     json.dump(Vdesc, outfile)
-
-        pickle_out = open(path + 'HF_V_data.pickle', 'wb')
-        pickle.dump(data, pickle_out)
-        pickle_out.close()
-
-        return data, Vdesc
+        return Vdesc
 
     def getSeq(self, data, Vdesc):
         VT = dict()
@@ -313,8 +295,7 @@ class Structure:
             # tempDT[pid].append('start')
             for date in sorted(data[pid]['appt']):
                 if 'withinappt' not in data[pid]['appt'][date] or len(data[pid]['appt'][date]['withinappt']) == 0:
-                    if Vdesc[str(data[pid]['appt'][date]['type']) + str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass'])] not in \
-                        VT[pid] and (str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass']) != 'D_NRO_NRM_NR'):
+                    if (Vdesc[str(data[pid]['appt'][date]['type']) + str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass'])] not in VT[pid] and (str(data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(data[pid]['appt'][date]['drugclass']) != 'D_NRO_NRM_NR'):
                         VT[pid].append(Vdesc[str(data[pid]['appt'][date]['type']) + str(
                             data[pid]['appt'][date]['diag']) + str(data[pid]['appt'][date]['proc']) + str(
                             data[pid]['appt'][date]['drugclass'])])
