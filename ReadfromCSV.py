@@ -17,7 +17,7 @@ class DataProcess:
     def readFromCSV(self): 
         resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_task.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
         resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
@@ -70,7 +70,7 @@ class DataProcess:
                     #if order sets were used just take order set names
                     if res.typecode=='Diagnostic':
                         if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('OS'+res.ordersetname)
                             CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
                         
                         #if non-order set order just label as 'Lab_order'
@@ -99,7 +99,7 @@ class DataProcess:
                     if res.typecode=='Diagnostic':
                         #if order sets were used just take order set names
                         if str(res.ordersetname)!='nan' and res.ordersetname not in CE[res.clientvisitguid]['appt'][res.createdwhen]['proc']:
-                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append(res.ordersetname)
+                            CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'].append('OS'+res.ordersetname)
                             CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'] = sorted(CE[res.clientvisitguid]['appt'][res.createdwhen]['proc'])
                         
                         #if non-order set order just label as 'Lab_order'
