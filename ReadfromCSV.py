@@ -187,7 +187,7 @@ class DataProcess:
                 for t in range(len(CE_location[pid])-1):
                     if CE_location[pid][t][0]<date and CE_location[pid][t+1][0]>date:
                         CE[pid]['appt'][date]['location'].append(CE_location[pid][t][1])
-                        print('x')
+                        
                         #print(pid,date,CE[pid]['appt'][date]['location'])
                 for t in range(len(CE_location[pid])):
                     if date ==CE_location[pid][t][0]:
@@ -195,7 +195,7 @@ class DataProcess:
                         #print(pid,date,CE[pid]['appt'][date]['location'])
                     if CE_location[pid][t][0]>date and CE_location[pid][t-1][0]<date:
                         CE[pid]['appt'][date]['location'].append(CE_location[pid][t-1][1])
-                        print('y')
+                        
                         #print(pid,date,CE[pid]['appt'][date]['location'])
                     
                 # print(pid,date,CE[pid]['appt'][date]['location'],CE[pid]['appt'][date])
