@@ -17,9 +17,9 @@ class DataProcess:
     def readFromCSV(self): 
         resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
         
         resultlist_demo=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/demographics_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
@@ -56,11 +56,20 @@ class DataProcess:
                 CE[res.clientvisitguid]['sex'] = res.gender
                 CE[res.clientvisitguid]['age'] = res.YOB
                 CE[res.clientvisitguid]['race'] = res.race
-                CE[res.clientvisitguid]['marry'] = res.mariatalstatus
+                CE[res.clientvisitguid]['marry'] = res.maritalstatus
                 CE[res.clientvisitguid]['language'] = res.language
                 CE[res.clientvisitguid]['ethnicity'] = res.ethnicity1
-            except:
-                print('only in demo')
+            except KeyError as a:
+                print(a)
+            except ValueError as b:
+                print(b)
+            except TypeError as c:
+                print(c)
+            except AttributeError as d:
+                print (d)
+                print(res)
+                
+
                         
         #add lab orders 
         for res in resultlist_ce.itertuples():
