@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 path = '/Users/yiyezhang/Documents/Data/NYPData/HF/'
         
-JSON_FILE = os.path.expanduser(path+"EDDC_HF_2012_2018_ouput.json")
+JSON_FILE = os.path.expanduser(path+"EDDC_HF_2012_2018_cv3_notcancelled.json")
 
 
 class DataProcess:
@@ -17,9 +17,11 @@ class DataProcess:
     def readFromCSV(self): 
         resultlist_cd=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/diag_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
+        # resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ce=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/order_EDDC_2012_2018_cv3_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
 
-        resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
+        resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
+        # resultlist_ap=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/visit_EDDC_2012_2018_notcancelled.csv',sep=',',error_bad_lines=False,header=0)
         
         resultlist_demo=pd.read_csv('/Users/yiyezhang/Documents/Data/NYPData/HF/demographics_EDDC_2012_2018.csv',sep=',',error_bad_lines=False,header=0)
         
