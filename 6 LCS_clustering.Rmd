@@ -1,0 +1,68 @@
+---
+title: "LCS_clustering"
+author: "Yifan Liu"
+date: "2/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(cluster)
+library(TraMineR)
+library(sparcl)
+#library("xlsx")
+```
+
+
+```{r}
+#use the printout from getV_fromCSV.py (line 332)
+data = read.csv("/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/OrderAnalysis-master/train_seq_clustering.csv", header=TRUE)
+head(data)
+str(data)
+N = length(data)
+N
+length(data$X0)
+#data2=subset(data,V2==3)  #subset clusters
+## 378 columns, 1407 rows for triaining data, 289 rows for test data
+```
+
+```{r}
+## Create state sequence objects
+data_seq = seqdef(data[,5:N], left="DEL", right = "DEL", gaps="DEL")  #look at first 4 events in the sequence
+
+## Computes pairwise dissimilarities between sequences 
+data_lcs <- seqdist(data_seq, method = "LCS")
+## Computes agglomerative hierarchical clustering
+clusterward_lcs <- agnes(data_lcs, diss = TRUE, method = "ward")
+plot(clusterward_lcs)
+```
+
+Calculating silhouette value to select k
+```{r}
+simat=matrix(c(NA),nrow=100,ncol=2)
+j=1
+for (i in 2:100){
+si <- silhouette(cutree(clusterward_lcs, k = i), data_lcs)
+#si=silhouette(pam(data_lcs,i))
+simat[j,1]=i
+simat[j,2]=summary(si)$avg.width
+j=j+1
+}
+plot(simat,type='b',xlab='number of clusters',ylab='avg. width')
+
+simat
+## choose k=3 after checking the training data
+## choose k=3 after checking the training data
+```
+
+```{r}
+cluster3_lcs <- cutree(clusterward_lcs, k = 3)
+table(cluster3_lcs)
+
+#first column is first column of data, 2nd column is cluster number. 
+write.csv(cluster3_lcs,'/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/OrderAnalysis-master/train_cluster_k=3.csv')
+
+## copy the clientvisitid from other file to the output
+```
+

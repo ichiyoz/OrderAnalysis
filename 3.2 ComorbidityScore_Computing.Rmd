@@ -1,0 +1,64 @@
+---
+title: "ComordibityScore"
+author: "Yifan Liu"
+date: "2/5/2020"
+output: html_document
+---
+```{r}
+#install.packages("rJava",type='source')
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(comorbidity)
+library(dplyr)
+install.packages("rJava")
+library(xlsx)
+library(rJava)
+```
+
+
+```{r}
+diagnosis <- read.csv('/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/Data/2_diag_withduplicates.csv', stringsAsFactors = FALSE)
+summary(diagnosis)
+```
+
+```{r}
+charlson10 <- comorbidity(x = diagnosis, id = "ID", code = "value", score = "charlson", icd = "icd10", assign0 = FALSE)
+charlson10
+
+charlson <- charlson10 %>%
+  select(ID, score)
+
+colnames(charlson) <- c("ID", "Charlson")
+charlson
+```
+
+```{r}
+elixhauser10 <- comorbidity(x = diagnosis, id = "ID", code = "value", score = "elixhauser", icd = "icd10", assign0 = FALSE)
+elixhauser10
+
+elixhauser10
+write.xlsx(elixhauser10, '/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/OrderAnalysis-master/elixhauser10.xlsx', sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE)
+
+elixhauser <- elixhauser10 %>%
+  select(ID, score) 
+
+colnames(elixhauser) <- c("ID", "Elixhauser")
+elixhauser
+```
+
+```{r}
+comorbidityscore <- merge(elixhauser, charlson, by = "ID")
+## ID is userguid
+
+as.character(comorbidityscore$ID)
+comorbidityscore
+
+write.csv(comorbidityscore, '/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/2_ComorbidityScore_withoutduplicates.csv')
+
+write.xlsx(comorbidityscore, '/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/2_ComorbidityScore_withoutduplicates.csv', sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE)
+```
+
