@@ -1,0 +1,75 @@
+/* 
+miz9013 -- Michael Zelenetz
+Active inpatients on Vents, NIV, HFNC, or oxygen.
+ */
+SELECT
+	*
+FROM (
+	SELECT
+		CASE WHEN UniversalServiceName in('Puritan Bennett 840 Ventilator', 'VersaMed iVent Ventilator', 'High Frequency Oscillatory Ventilator', 'Invasive Mechanical Ventilation', 'Servo-i Ventilator', 'LTV 1200 Ventilator', 'Evita XL Ventilator', 'Puritan Bennett 7200 Ventilator', 'Servo Ventilator', 'Avea Ventilator', 'Puritan Bennett 840 Ventilator - New', 'Extubation/CPAP Vent') THEN
+			'Invasive'
+		WHEN UniversalServiceName in('Non-invasive Positive Pressure Ventilati', 'Nasal CPAP without O2') THEN
+			'PPV'
+		WHEN UniversalServiceName = 'O2 via - High Flow Nasal Cannula' THEN
+			'HFNC'
+		WHEN UniversalServiceName in('O2 via - Simple O2 Mask', 'O2 via - Partial Rebreather', 'O2 via - Nasal Cannula', 'O2 via - Oxihood', 'O2 via - Aerosol Mask', 'O2 via - T Piece', 'O2 via - Trach Collar', 'O2 via - CPAP Mask', 'O2 via - 100% Non Rebreather', 'O2 via - Ventimask', 'O2 via - Blow By O2', 'O2 via - Ventimask', 'O2 via - Blow By O2') THEN
+			'Oxygen'
+		END AS VentilationType,
+		o.PatientID,
+		o.VisitID,
+		o.EMPI,
+		o.FacilityID,
+		StartDtTm,
+		EndDtTm,
+		v.CurrentLocationUnit,
+		covid.ObservationValue,
+		v.AdmitComplaint,
+		v.admitdttm as visitadmit,
+		v.dischargedttm,
+		p.DOB,
+		covid.admitdttm,
+		datediff(hour, v.admitdttm,StartDtTm) as hourafteradmission,
+		p.race,
+		p.sex,
+		icu.unitHL7code,
+		CampusShort = CASE WHEN unit.FacilityName = 'NY-Presbyterian Weill Cornell' THEN
+			'NYP-WC'
+		WHEN unit.FacilityName = 'NY-Presbyterian Low Manhattan' THEN
+			'NYP-LMH'
+		WHEN unit.FacilityName = 'NY-Presbyterian CPMC' THEN
+			'NYP-CU'
+		WHEN unit.FacilityName = 'New York Presbyterian Queens' THEN
+			'NYP-Q'
+		WHEN unit.FacilityName = 'NY-Presbyterian Westchester' THEN
+			'NYP-WD'
+		END,
+		unit.unitcode,
+		ICU=case when (unit.unitcode='3C' and facilityname='NY-Presbyterian Low Manhattan') THEN 1
+		when icu.unitHL7code is not null then 1	
+		end,	
+		ROW_NUMBER() OVER (PARTITION BY o.VisitID ORDER BY StartDtTm DESC) AS RN
+	FROM
+		Jupiter.SCM.HL7_Orders o
+		INNER JOIN Jupiter.Eagle.Visits v (nolock) ON v.VisitID = o.VisitID
+		
+		--AND v.DischargeDtTm IS NULL
+		AND v.PatientClass = 'I' --IP only
+		AND v.AdmitDtTm >= dateadd (year,
+		- 1,
+		getdate ()) --exclude the ghosts
+AND v.AccountStatus <> 'VA' --Remove voided accounts
+AND v.FacilityID <> 'P'
+	left JOIN JupiterCustomData.dbo.COVID19 covid (nolock) ON covid.EMPI = o.EMPI
+	LEFT JOIN JupiterCustomData.Lookup.v_Units unit (nolock) ON unit.UnitCode = v.CurrentLocationUnit
+	LEFT JOIN Jupiter.Lookup.icu_Units icu (nolock) ON icu.unitHL7Code = v.CurrentLocationUnit
+
+left JOIN jupiter.eagle.patients p ON p.patientID = v.patientID
+WHERE
+	UniversalServiceSystem = '_MED_RESP'
+	and(o.EndDtTm IS NULL
+	OR o.EndDtTm > GETDATE ())
+	and v.admitdttm>'2019-10-01'
+	AND o.UniversalServiceName in('O2 via - Simple O2 Mask', 'O2 via - Partial Rebreather', 'O2 via - Nasal Cannula', 'O2 via - Oxihood', 'O2 via - Aerosol Mask', 'O2 via - T Piece', 'O2 via - Trach Collar', 'O2 via - CPAP Mask', 'O2 via - 100% Non Rebreather', 'O2 via - Ventimask', 'O2 via - Blow By O2', 'O2 via - Ventimask', 'O2 via - Blow By O2', 'O2 via - High Flow Nasal Cannula', 'Non-invasive Positive Pressure Ventilati', 'Nasal CPAP without O2', 'Puritan Bennett 840 Ventilator', 'VersaMed iVent Ventilator', 'High Frequency Oscillatory Ventilator', 'Invasive Mechanical Ventilation', 'Servo-i Ventilator', 'LTV 1200 Ventilator', 'Evita XL Ventilator', 'Puritan Bennett 7200 Ventilator', 'Servo Ventilator', 'Avea Ventilator', 'Puritan Bennett 840 Ventilator - New', 'Extubation/CPAP Vent')) a
+	
+WHERE
+	RN = 1;

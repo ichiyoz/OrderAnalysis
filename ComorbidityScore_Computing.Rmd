@@ -1,0 +1,51 @@
+---
+title: "ComordibityScore"
+author: "Yifan Liu"
+date: "2/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(comorbidity)
+library(dplyr)
+```
+
+```{r}
+diagnosis <- read.csv('/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/Data/diag.csv', stringsAsFactors = FALSE)
+summary(diagnosis)
+```
+
+```{r}
+charlson10 <- comorbidity(x = diagnosis, id = "ID", code = "Diagnosis", score = "charlson", icd = "icd10", assign0 = FALSE)
+charlson10
+
+charlson <- charlson10 %>%
+  select(ID, score)
+
+colnames(charlson) <- c("ID", "Charlson")
+charlson
+```
+
+```{r}
+elixhauser10 <- comorbidity(x = diagnosis, id = "ID", code = "Diagnosis", score = "elixhauser", icd = "icd10", assign0 = FALSE)
+elixhauser10
+
+elixhauser <- elixhauser10 %>%
+  select(ID, score) 
+
+colnames(elixhauser) <- c("ID", "Elixhauser")
+elixhauser
+```
+
+```{r}
+comorbidityscore <- merge(elixhauser, charlson, by = "ID")
+## ID is userguid
+
+as.character(comorbidityscore$ID)
+comorbidityscore
+
+write.csv(comorbidityscore, '/Users/fan/Desktop/Fullhouse/WCM/HospitalManagement/ComorbidityScore.csv')
+```
+

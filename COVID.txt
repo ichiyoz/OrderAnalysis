@@ -1,0 +1,207 @@
+library(RODBC)
+library(lubridate)
+library(tidyverse)
+library(magrittr)
+library(janitor)
+library(openxlsx)
+library(taskscheduleR)
+library(data.table)
+library(padr)
+library(zoo)
+library(DT)
+library(formattable)
+library(tableHTML)
+library(gridExtra)
+library(kableExtra)
+library(magick)
+
+setwd("H:/R/Automated/Weekly_COVID")
+
+cn <- odbcConnect("JupiterProd")
+
+
+## All ED patients with COVID test
+
+COVID_Tests <- sqlQuery(cn, "select *
+
+from (select distinct ed.EncounterNum
+, ed.MRN
+, ed.FirstName + ' ' + ed.LastName as 'Name'
+, ed.Age
+, case when ed.EDSite like 'Cornell%' then 'Cornell ED' else 'LMH ED' end as 'ED Site'
+, Loc3 as 'Location'
+, DATEADD(HOUR, datediff(hour, 0 , EDArrivalDtm), 0) as 'ED Arrival'
+, EDArrivalDtm
+, ordername
+, ed.EDSite
+, SummaryDispoCategory
+, ValueAttribute as 'MD Name'
+, ROW_NUMBER() over (partition by ed.encounternum order by ordercreatedwhen) as RN
+, covid.ObservationValue as 'Result'
+
+
+from Dashboards.ed.ed ed
+inner join jupiter.scm.orders o (nolock) on o.Account = cast(ed.encounternum as varchar)
+		and OrderName in ( 'microbiology sendout', 'SARS-CoV-2 RT-PCR')
+left join dashboards.ed.ED_Dimensions dim with (nolock) on dim.EncounterNum = ed.EncounterNum 
+			and valuename= 'ED Attending'
+			and dim.RowNum = 1
+left join JupiterCustomData.dbo.COVID19 covid (nolock) on cast(covid.EMPI as float)=cast( o.EMPI as float)
+
+where ed.EDSite in ('Cornell ED','Cornell Peds ED','LMH ED','LMH Peds ED')
+and edarrivaldtm >= '2020-03-08'
+
+) a 
+
+where RN  = 1
+order by EDArrivalDtm", as.is = T, stringsAsFactors = F)
+
+COVID_Tests$`Age Group` = ifelse(COVID_Tests$Age<= 21, '0 to 21',
+                                 ifelse(COVID_Tests$Age > 21 & COVID_Tests$Age<=49, '22 to 49',
+                                        ifelse(COVID_Tests$Age > 49 & COVID_Tests$Age<= 64, '50 to 64',
+                                               '65 & older')))
+
+COVID_Tests$`Day` <- as.Date(COVID_Tests$EDArrivalDtm)
+
+## All MICU consults
+MICU_Consults <- sqlQuery(cn, "select distinct EncounterNum
+, [MICU Consult Order]
+
+from (select distinct ed.EncounterNum
+, row_number() over (partition by encounternum order by ordercreatedwhen) as RN
+, OrderCreatedWhen as 'MICU Consult Order'
+
+
+from Dashboards.ed.ed ed
+inner join jupiter.scm.Orders o (nolock) on o.Account = cast(ed.encounternum as varchar)
+	and OrderName in ( 'ED Consult Order - MICU', 'ED Consult Order - MICU (LMH)')
+	and OrderActive = 1
+
+where EDSite in ('Cornell ED','Cornell Psych ED','Cornell Peds ED','LMH ED','LMH Peds ED')
+and EDArrivalDtm >= '2020-03-01 12:00am') a
+
+where RN = 1", as.is = T, stringsAsFactors = F)
+
+## Missing 1 medication that Dr. Park is looking for
+Medication <- sqlQuery(cn, "select distinct EncounterNum
+, OrderName as 'Medication'
+, OrderCreatedWhen as 'Medication Order Time'
+
+from (select distinct EncounterNum
+, OrderName
+, OrderCreatedWhen
+, row_number () over (partition by encounternum order by ordercreatedwhen) as RN
+
+
+from Dashboards.ed.ed ed 
+inner join jupiter.scm.orders o (nolock) on o.Account = cast(ed.encounternum as varchar)
+and ordername in (
+'Hydroxychloroquine (PLAQUENIL) tablet +R+'
+, 'Hydroxychloroquine Oral Susp'
+, 'Hydroxychloroquine Oral'
+, 'chg tocilizumab 20 mg/mL inj *R* 20 mL'
+, 'Tocilizumab inj (NC) +R+'
+, 'chg tocilizumab 20 mg/mL inj *R* - 4 mL'
+, 'Tocilizumab inj +R+')
+and OrderActive = 1
+
+where EDSite in ('Cornell ED','Cornell Psych ED','Cornell Peds ED','LMH ED','LMH Peds ED')
+and EDArrivalDtm >= '2020-03-01 12:00am')
+
+a where RN = 1", as.is = T, stringsAsFactors = F)
+
+# Add inpatient data -- starting point is endorsement. If endorsement not present use bed request or admit aware time
+# if both not present use ED Arrival
+# patients with "null" are still in the hospital
+
+Inpatient_Info <- sqlQuery(cn, "SET NOCOUNT ON
+drop table if exists #admitted
+select distinct EncounterNum
+
+into #admitted
+from Dashboards.ed.ed ed
+
+where EDSite in ('Cornell ED','Cornell Psych ED','Cornell Peds ED','LMH ED','LMH Peds ED')
+and EDArrivalDtm >= '2020-03-01 12:00am'
+and SummaryDispoCategory = 'admitted'
+
+drop table if exists #endorsement
+select distinct p.EncounterNum
+, p.endorsement
+, ROW_NUMBER () over (partition by p.encounternum order by endorsement DESC) RN
+
+
+into #endorsement
+from (select distinct p.encounternum
+, case when ObsCreatedWhen is not null then ObsCreatedWhen else o2.OrderCreatedWhen end as Endorsement
+
+
+from #admitted p
+--inner join Dashboards.ed.ed ed (nolock) on ed.EncounterNum = p.EncounterNum
+left join jupiter.scm.Observations  o (nolock) on o.Account= cast(p.encounternum as varchar)
+	and docName  in ( 'ED Disposition Note' , 'ED Unified Attending Note')
+	and ObsName in ('ED SBAR md Ft', 'ED SBAR pager nu')
+left join jupiter.scm.orders o2 (nolock) on o2.Account = cast(p.EncounterNum as varchar)
+	and ordername = 'ED Bed Request/Admit to Hospital (cornell)' 
+	) p
+
+	--------------------- for patients without discharge order used discharge time
+drop table if exists #exithospital
+select distinct e.encounternum
+, e.Endorsement
+, discharge_time
+, ROW_NUMBER () over (partition by e.encounternum order by discharge_time) as RN
+
+into #exithospital
+
+from (
+select e.encounternum
+, e.Endorsement
+, coalesce(ordercreatedwhen, ed.visitdischargedtm) as discharge_time
+
+from #endorsement e
+left join jupiter.scm.orders o (nolock) on o.account = cast(e.encounternum as varchar)
+		and ordername= 'Discharge Patient'
+left join Dashboards.ed.ed ed (nolock) on e.EncounterNum = ed.EncounterNum
+where RN = 1) e
+
+---------
+SET NOCOUNT OFF
+select *
+, DATEDIFF(hour, Endorsement,[Exit Hospital]) as 'Inpatient LOS hrs'
+from (select distinct e.EncounterNum
+, EDArrivalDtm
+, case when Endorsement is null then coalesce( ed.AdmitAwareDtm, ed.AdmitDecisionDtm, ed.edarrivaldtm)
+else Endorsement
+end as 'Endorsement'
+, discharge_time as 'Exit Hospital'
+
+
+from #exithospital e
+inner join Dashboards.ed.ed ed (nolock) on ed.EncounterNum = e.EncounterNum) a", as.is = T, stringsAsFactors = F)
+
+# Add Intubation Code
+
+# Add different ICUs code
+
+# Add comorbidity code
+
+
+COVID_Tests_Updated <- left_join(left_join(COVID_Tests, 
+                              MICU_Consults, by = 'EncounterNum'),
+                              Medication, by = 'EncounterNum')
+
+WCM <- COVID_Tests_Updated %>% 
+  filter(`ED Site` == 'Cornell ED')
+
+LMH <- COVID_Tests_Updated %>% 
+  filter(`ED Site` == 'LMH ED')
+
+COVID_Positive <- COVID_Tests_MICU %>% 
+  filter(Result == 'Detected')
+
+COVID_Negative <- COVID_Tests_MICU %>% 
+  filter(Result == 'Not Detected')
+
+COVID_Pending <- COVID_Tests_MICU %>% 
+  filter(Result == 'Pending')
